@@ -2,12 +2,21 @@ cmake_minimum_required(VERSION 2.8.3)
 project(snowboy_ros)
 
 find_package(catkin REQUIRED COMPONENTS
+    roscpp
     audio_common_msgs
 )
+
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
 # find_package(Boost REQUIRED COMPONENTS system program_options)
 # find_package(PCL REQUIRED)
 # find_package(OpenCV REQUIRED)
+
+find_path(BLAS_LIBRARIES cblas.a
+  /usr/lib
+  /usr/local/lib
+  $ENV{BLAS_HOME}/lib)
+#find_package(BLAS REQUIRED)
 
 # ------------------------------------------------------------------------------------------------
 #                                     ROS MESSAGES AND SERVICES
@@ -40,8 +49,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES bla
-#  CATKIN_DEPENDS other_catkin_pkg
+#  LIBRARIES hotword_detector
+#  CATKIN_DEPENDS roscpp audio_common_msgs
 #  DEPENDS system_lib
 )
 
@@ -51,19 +60,26 @@ catkin_package(
 
 include_directories(
     include
+    3rdparty
     ${catkin_INCLUDE_DIRS}
 )
 
-# add_library(library_name
-#     src/lib_source_file1.cpp
-#     ...
-# )
-# target_link_libraries(library_name ${catkin_LIBRARIES})
+file(GLOB_RECURSE HEADER_FILES include/*.h)
 
-# add_executable(exec_name
-#     src/source_file1.cpp
-#     ...
-# )
-# target_link_libraries(exec_name ${catkin_LIBRARIES})
+add_library(hotword_detector
+    src/hotword_detector.cpp
+    ${HEADER_FILES}
+)
+
+target_link_libraries(hotword_detector
+    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/snowboy/lib/ubuntu64/libsnowboy-detect.a
+    ${catkin_LIBRARIES}
+    ${BLAS_LIBRARIES}
+)
+
+add_executable(hotword_detector_node
+    src/hotword_detector_node.cpp
+)
+target_link_libraries(hotword_detector_node hotword_detector ${catkin_LIBRARIES})
 
 
