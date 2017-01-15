@@ -6,17 +6,10 @@ find_package(catkin REQUIRED COMPONENTS
     audio_common_msgs
 )
 
+#set(CMAKE_CXX_FLAGS "-D_GLIBCXX_USE_CXX11_ABI=0 ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
-# find_package(Boost REQUIRED COMPONENTS system program_options)
-# find_package(PCL REQUIRED)
-# find_package(OpenCV REQUIRED)
-
-find_path(BLAS_LIBRARIES cblas.a
-  /usr/lib
-  /usr/local/lib
-  $ENV{BLAS_HOME}/lib)
-#find_package(BLAS REQUIRED)
+find_package(BLAS)
 
 # ------------------------------------------------------------------------------------------------
 #                                     ROS MESSAGES AND SERVICES
@@ -65,10 +58,12 @@ include_directories(
 )
 
 file(GLOB_RECURSE HEADER_FILES include/*.h)
+file(GLOB_RECURSE 3RD_PARTY_FILES 3rdparty/*.h)
 
 add_library(hotword_detector
     src/hotword_detector.cpp
     ${HEADER_FILES}
+    ${3RD_PARTY_FILES}
 )
 
 target_link_libraries(hotword_detector
@@ -80,6 +75,9 @@ target_link_libraries(hotword_detector
 add_executable(hotword_detector_node
     src/hotword_detector_node.cpp
 )
-target_link_libraries(hotword_detector_node hotword_detector ${catkin_LIBRARIES})
+target_link_libraries(hotword_detector_node
+    hotword_detector
+    ${catkin_LIBRARIES}
+)
 
 
