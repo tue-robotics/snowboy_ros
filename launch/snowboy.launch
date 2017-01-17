@@ -5,8 +5,9 @@
     </include>
 
     <node pkg="snowboy_ros" type="hotword_detector_node" name="snowboy">
- 		<param name="resource_filename" value="$(find snowboy_ros)/resources/common.res"/>
- 		<param name="model_filename" value="$(find snowboy_ros)/resources/Hey_Amigo.pmdl"/>
- 		<param name="sensitivity_str" value="0.5"/>
- 	</node>
+        <param name="resource_filename" value="$(find snowboy_ros)/resources/common.res"/>
+        <param name="model_filename" value="$(find snowboy_ros)/resources/Hey_Amigo.pmdl"/>
+        <param name="sensitivity_str" value="0.01"/>
+        <param name="audio_gain" value="1.0"/>
+    </node>
 </launch>
