@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
-    <include file="$(find audio_capture)/launch/capture.launch" />
+    <include file="$(find audio_capture)/launch/capture.launch" >
+        <param name="format" value="wave" />
+    </include>
 
     <node pkg="snowboy_ros" type="hotword_detector_node" name="snowboy">
  		<param name="resource_filename" value="$(find snowboy_ros)/resources/common.res"/>
