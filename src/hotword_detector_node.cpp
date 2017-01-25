@@ -32,6 +32,10 @@ public:
 
     publish_wave_ = false;
     nh_p_.getParam("publish_wave", publish_wave_);
+    if ( publish_wave_ )
+    {
+      wave_pub_ = nh_.advertise<std_msgs::Int16>("wave", 100);
+    }
 
     detector_ = new ros_snowboy::HotwordDetector(resource_filename.c_str(), model_filename.c_str(), sensitivity_str.c_str(), audio_gain);
   }
