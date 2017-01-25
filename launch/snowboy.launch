@@ -12,7 +12,7 @@
     <node pkg="snowboy_ros" type="hotword_detector_node" name="snowboy" required="true">
         <param name="resource_filename" value="$(find snowboy_ros)/resources/common.res"/>
         <param name="model_filename" value="$(find snowboy_ros)/resources/Hey_Amigo.pmdl"/>
-        <param name="sensitivity_str" value="0.5"/>
+        <param name="sensitivity_str" value="0.5" type="str" />
         <param name="audio_gain" value="1.0"/>
         <param name="publish_wave" value="$(arg publish_wave)" />
     </node>
