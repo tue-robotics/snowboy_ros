@@ -1,13 +1,19 @@
 <?xml version="1.0"?>
 <launch>
-    <include file="$(find audio_capture)/launch/capture.launch" >
+    <arg name="publish_wave" default="false" />
+
+    <node name="audio_capture" pkg="audio_capture" type="audio_capture" output="screen">
         <param name="format" value="wave" />
-    </include>
+        <param name="channels" value="1" />
+        <param name="depth" value="16" />
+        <param name="sample_rate" value="16000" />
+    </node>
 
     <node pkg="snowboy_ros" type="hotword_detector_node" name="snowboy">
         <param name="resource_filename" value="$(find snowboy_ros)/resources/common.res"/>
         <param name="model_filename" value="$(find snowboy_ros)/resources/Hey_Amigo.pmdl"/>
-        <param name="sensitivity_str" value="0.01"/>
+        <param name="sensitivity_str" value="0.5"/>
         <param name="audio_gain" value="1.0"/>
+        <param name="publish_wave" value="$(arg publish_wave)" />
     </node>
 </launch>
