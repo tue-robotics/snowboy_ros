@@ -3,11 +3,19 @@
 #include <ros/node_handle.h>
 #include <ros/debug.h>
 #include <audio_common_msgs/AudioData.h>
-#include <std_msgs/Int16.h>
+#include <std_msgs/String.h>
 
-namespace ros_snowboy
+#include <dynamic_reconfigure/server.h>
+#include <snowboy_ros/SnowboyReconfigureConfig.h>
+
+#include <boost/filesystem.hpp>
+
+namespace snowboy_ros
 {
 
+//!
+//! \brief The HotwordDetectorNode class Wraps the C++ 11 Snowboy detector in a ROS node
+//!
 class HotwordDetectorNode
 {
 public:
@@ -15,50 +23,113 @@ public:
     nh_(""),
     nh_p_("~")
   {
-    audio_sub_ = nh_.subscribe("audio", 1000, &HotwordDetectorNode::audioCallback, this);
-    trigger_pub_ = nh_.advertise<std_msgs::Int16>("detection", 10);
-
-    std::string resource_filename("");
-    nh_p_.getParam("resource_filename", resource_filename);
-
-    std::string model_filename("");
-    nh_p_.getParam("model_filename", model_filename);
-
-    std::string sensitivity_str("");
-    nh_p_.getParam("sensitivity_str", sensitivity_str);
-
-    double audio_gain = 1.0;
-    nh_p_.getParam("audio_gain", audio_gain);
-
-    publish_wave_ = false;
-    nh_p_.getParam("publish_wave", publish_wave_);
-    if ( publish_wave_ )
-    {
-      wave_pub_ = nh_.advertise<std_msgs::Int16>("wave", 100);
-    }
-
-    detector_ = new ros_snowboy::HotwordDetector(resource_filename.c_str(), model_filename.c_str(), sensitivity_str.c_str(), audio_gain);
   }
 
-  // ----------------------------------------------------------------------------------------------------
-
-  ~HotwordDetectorNode()
+  bool initialize()
   {
-    delete detector_;
+    audio_sub_ = nh_.subscribe("audio", 1000, &HotwordDetectorNode::audioCallback, this);
+    trigger_pub_ = nh_.advertise<std_msgs::String>("trigger", 10);
+
+    std::string resource_filename;
+    if (!nh_p_.getParam("resource_filename", resource_filename))
+    {
+      ROS_ERROR("Mandatory parameter 'resource_filename' not present on the parameter server");
+      return false;
+    }
+
+    if ( !boost::filesystem::exists( resource_filename ) )
+    {
+      ROS_ERROR("Resource '%s' does not exist", resource_filename.c_str());
+      return false;
+    }
+
+    std::string resource_extension = boost::filesystem::extension(resource_filename);
+    if ( resource_extension != ".res" )
+    {
+      ROS_ERROR("'%s' not a valid Snowboy resource extension ('.res').", resource_filename.c_str());
+      return false;
+    }
+
+    std::string model_filename;
+    if (!nh_p_.getParam("model_filename", model_filename))
+    {
+      ROS_ERROR("Mandatory parameter 'model_filename' not present on the parameter server");
+      return false;
+    }
+
+    if ( !boost::filesystem::exists( model_filename ) )
+    {
+      ROS_ERROR("Model '%s' does not exist", model_filename.c_str());
+      return false;
+    }
+
+    std::string model_extension = boost::filesystem::extension(model_filename);
+    if ( model_extension  != ".pmdl" && model_extension != ".umdl" )
+    {
+      ROS_ERROR("Model '%s', not a valid Snowboy model extension ('.pmdl', '.umdl').", resource_filename.c_str());
+      return false;
+    }
+
+    trigger_string_ = nh_p_.param("trigger_string", std::string("hotword_detection"));
+
+    detector_.initialize(resource_filename.c_str(), model_filename.c_str());
+
+    dynamic_reconfigure_server_.setCallback(boost::bind(&HotwordDetectorNode::reconfigureCallback, this, _1, _2));
+
+    return true;
   }
 
 private:
+
+  //!
+  //! \brief nh_ Global nodehandle for topics
+  //!
   ros::NodeHandle nh_;
+
+  //!
+  //! \brief nh_p_ Local nodehandle for parameters
+  //!
   ros::NodeHandle nh_p_;
+
+  //!
+  //! \brief audio_sub_ Subscriber to incoming audio feed
+  //!
   ros::Subscriber audio_sub_;
+
+  //!
+  //! \brief trigger_pub_ Trigger publisher
+  //!
   ros::Publisher trigger_pub_;
-  ros::Publisher wave_pub_;
-  ros_snowboy::HotwordDetector* detector_;
 
-  bool publish_wave_;
+  //!
+  //! \brief dynamic_reconfigure_server_ In order to online tune the sensitivity and audio gain
+  //!
+  dynamic_reconfigure::Server<SnowboyReconfigureConfig> dynamic_reconfigure_server_;
 
-  // ----------------------------------------------------------------------------------------------------
+  //!
+  //! \brief trigger_string_ String to be published when hotword is detected
+  //!
+  std::string trigger_string_;
 
+  //!
+  //! \brief detector_ C++ 11 Wrapped Snowboy detect
+  //!
+  HotwordDetector detector_;
+
+  //!
+  //! \brief reconfigureCallback Reconfigure update for sensitiviy and audio level
+  //! \param cfg The updated config
+  //!
+  void reconfigureCallback(SnowboyReconfigureConfig cfg, uint32_t /*level*/)
+  {
+    detector_.configure(cfg.sensitivity, cfg.audio_gain);
+    ROS_INFO("SnowboyROS (Re)Configured");
+  }
+
+  //!
+  //! \brief audioCallback Audio stream callback
+  //! \param msg The audo data
+  //!
   void audioCallback(const audio_common_msgs::AudioDataConstPtr& msg)
   {
     if (msg->data.size() != 0)
@@ -69,28 +140,31 @@ private:
        */
 
       if ( msg->data.size() % 2 )
+      {
         ROS_ERROR("Not an even number of bytes in this message!");
+      }
 
       int16_t sample_array[msg->data.size()/2];
       for ( size_t i = 0; i < msg->data.size(); i+=2 )
       {
         sample_array[i/2] = ((int16_t) (msg->data[i+1]) << 8) + (int16_t) (msg->data[i]);
-
-        if ( publish_wave_ )
-        {
-          std_msgs::Int16 sample;
-          sample.data = sample_array[i/2];
-          wave_pub_.publish(sample);
-        }
       }
 
-      int result = detector_->RunDetection( &sample_array[0], msg->data.size()/2);
+      int result = detector_.runDetection( &sample_array[0], msg->data.size()/2);
       if (result > 0)
       {
         ROS_DEBUG("Hotword detected!");
-        std_msgs::Int16 trigger_msg;
+        std_msgs::String trigger_msg;
         trigger_msg.data = result;
         trigger_pub_.publish(trigger_msg);
+      }
+      else if (result == -3)
+      {
+        ROS_ERROR("Hotword detector not initialized");
+      }
+      else if (result == -1)
+      {
+        ROS_ERROR("Snowboy error");
       }
     }
   }
@@ -102,8 +176,18 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "snowboy_node");
 
-  ros_snowboy::HotwordDetectorNode ros_hotword_detector_node;
+  snowboy_ros::HotwordDetectorNode ros_hotword_detector_node;
 
-  ros::spin();
+  if (ros_hotword_detector_node.initialize())
+  {
+    ros::spin();
+  }
+  else
+  {
+    ROS_ERROR("Failed to initialize snowboy_node");
+    return 1;
+  }
+
+  return 0;
 }
 

@@ -2,36 +2,60 @@
 
 #include "snowboy_ros/hotword_detector.h"
 
-namespace ros_snowboy
+#include <sstream>
+
+namespace snowboy_ros
 {
 
-// ----------------------------------------------------------------------------------------------------
-
-HotwordDetector::HotwordDetector(const char* resource_filename_cpp11,
-                                 const char* model_filename_cpp11,
-                                 const char* sensitivity_cpp11,
-                                 const double audio_gain)
+HotwordDetector::HotwordDetector() : detector_(0)
 {
-  std::string resource_filename(resource_filename_cpp11);
-  std::string model_filename(model_filename_cpp11);
-  std::string sensitivity(sensitivity_cpp11);
-
-  detector_ = new snowboy::SnowboyDetect(resource_filename, model_filename);
-  detector_->SetAudioGain(audio_gain);
-  detector_->SetSensitivity("0.6");
 }
 
-// ----------------------------------------------------------------------------------------------------
+void HotwordDetector::initialize(const char* resource_filename, const char* model_filename)
+{
+  // Delete detector if we already had one
+  if (detector_)
+  {
+    delete detector_;
+  }
+
+  // We need to use cpp98 therefore we cannot pass std::strings
+  std::string resource_filename_cpp98(resource_filename);
+  std::string model_filename_cpp98(model_filename);
+
+  detector_ = new snowboy::SnowboyDetect(resource_filename_cpp98, model_filename_cpp98);
+}
+
+bool HotwordDetector::configure(double sensitivity, double audio_gain)
+{
+  // Return false if detector not initialized
+  if (!detector_)
+  {
+    return false;
+  }
+
+  std::stringstream sensitivity_ss; sensitivity_ss << sensitivity;
+
+  detector_->SetAudioGain(audio_gain);
+  detector_->SetSensitivity(sensitivity_ss.str());
+
+  return true;
+}
 
 HotwordDetector::~HotwordDetector()
 {
-  delete detector_;
+  if (detector_)
+  {
+    delete detector_;
+  }
 }
 
-// ----------------------------------------------------------------------------------------------------
-
-int HotwordDetector::RunDetection(const int16_t* const data, const int array_length)
+int HotwordDetector::runDetection(const int16_t* const data, const int array_length)
 {
+  if (!detector_)
+  {
+    return -3;
+  }
   return detector_->RunDetection(data, array_length);
 }
 

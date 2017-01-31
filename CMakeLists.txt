@@ -4,6 +4,7 @@ project(snowboy_ros)
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     audio_common_msgs
+    dynamic_reconfigure
 )
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
@@ -35,6 +36,12 @@ find_package(BLAS)
 #    geometry_msgs
 #    ...
 # )
+
+#add dynamic reconfigure api
+#find_package(catkin REQUIRED dynamic_reconfigure)
+generate_dynamic_reconfigure_options(
+    cfg/SnowboyReconfigure.cfg
+)
 
 # ------------------------------------------------------------------------------------------------
 #                                          CATKIN EXPORT
@@ -79,5 +86,5 @@ target_link_libraries(hotword_detector_node
     hotword_detector
     ${catkin_LIBRARIES}
 )
-
+add_dependencies(hotword_detector_node ${PROJECT_NAME}_gencfg)
 
