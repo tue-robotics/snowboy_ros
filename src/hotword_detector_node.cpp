@@ -27,8 +27,8 @@ public:
 
   bool initialize()
   {
-    audio_sub_ = nh_.subscribe("audio", 1000, &HotwordDetectorNode::audioCallback, this);
-    trigger_pub_ = nh_.advertise<std_msgs::String>("trigger", 10);
+    audio_sub_ = nh_.subscribe("microphone", 1000, &HotwordDetectorNode::audioCallback, this);
+    trigger_pub_ = nh_.advertise<std_msgs::String>("hotword_detection", 10);
 
     std::string resource_filename;
     if (!nh_p_.getParam("resource_filename", resource_filename))
