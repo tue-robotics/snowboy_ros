@@ -28,7 +28,7 @@ public:
   bool initialize()
   {
     audio_sub_ = nh_.subscribe("microphone", 1000, &HotwordDetectorNode::audioCallback, this);
-    trigger_pub_ = nh_.advertise<std_msgs::String>("hotword_detection", 10);
+    hotword_pub_ = nh_.advertise<std_msgs::String>("hotword_detection", 10);
 
     std::string resource_filename;
     if (!nh_p_.getParam("resource_filename", resource_filename))
@@ -70,7 +70,7 @@ public:
       return false;
     }
 
-    trigger_string_ = nh_p_.param("trigger_string", std::string("hotword_detection"));
+    hotword_string_ = nh_p_.param("hotword_string", std::string("hotword_detection"));
 
     detector_.initialize(resource_filename.c_str(), model_filename.c_str());
 
@@ -97,9 +97,9 @@ private:
   ros::Subscriber audio_sub_;
 
   //!
-  //! \brief trigger_pub_ Trigger publisher
+  //! \brief hotword_pub_ hotword publisher
   //!
-  ros::Publisher trigger_pub_;
+  ros::Publisher hotword_pub_;
 
   //!
   //! \brief dynamic_reconfigure_server_ In order to online tune the sensitivity and audio gain
@@ -107,9 +107,9 @@ private:
   dynamic_reconfigure::Server<SnowboyReconfigureConfig> dynamic_reconfigure_server_;
 
   //!
-  //! \brief trigger_string_ String to be published when hotword is detected
+  //! \brief hotword_string_ String to be published when hotword is detected
   //!
-  std::string trigger_string_;
+  std::string hotword_string_;
 
   //!
   //! \brief detector_ C++ 11 Wrapped Snowboy detect
@@ -154,9 +154,9 @@ private:
       if (result > 0)
       {
         ROS_DEBUG("Hotword detected!");
-        std_msgs::String trigger_msg;
-        trigger_msg.data = result;
-        trigger_pub_.publish(trigger_msg);
+        std_msgs::String hotword_msg;
+        hotword_msg.data = result;
+        hotword_pub_.publish(hotword_msg);
       }
       else if (result == -3)
       {
