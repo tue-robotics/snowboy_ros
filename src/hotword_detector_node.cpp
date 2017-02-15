@@ -154,9 +154,10 @@ private:
       if (result > 0)
       {
         ROS_DEBUG("Hotword detected!");
-        std_msgs::String hotword_msg;
-        hotword_msg.data = result;
-        hotword_pub_.publish(hotword_msg);
+
+        std_msgs::String trigger_msg;
+        trigger_msg.data = trigger_string_;
+        trigger_pub_.publish(trigger_msg);
       }
       else if (result == -3)
       {
