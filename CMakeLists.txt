@@ -11,6 +11,8 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 
 find_package(BLAS)
+find_package(PkgConfig)
+pkg_check_modules(GST1.0 gstreamer-1.0 REQUIRED)
 
 # ------------------------------------------------------------------------------------------------
 #                                     ROS MESSAGES AND SERVICES
@@ -62,6 +64,7 @@ include_directories(
     include
     3rdparty
     ${catkin_INCLUDE_DIRS}
+    ${GST1.0_INCLUDE_DIRS}
 )
 
 file(GLOB_RECURSE HEADER_FILES include/*.h)
@@ -78,6 +81,11 @@ target_link_libraries(hotword_detector
     ${catkin_LIBRARIES}
     ${BLAS_LIBRARIES}
 )
+
+add_library(resampler
+    src/resampler.cpp
+    include/${PROJECT_NAME}/resampler.h
+    ${GST1.0_INCLUDE_DIRS})
 
 add_executable(hotword_detector_node
     src/hotword_detector_node.cpp

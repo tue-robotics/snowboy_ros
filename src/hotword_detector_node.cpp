@@ -5,10 +5,13 @@
 #include <audio_common_msgs/AudioData.h>
 #include <std_msgs/String.h>
 
+#include "snowboy_ros/resampler.h"
+
 #include <dynamic_reconfigure/server.h>
 #include <snowboy_ros/SnowboyReconfigureConfig.h>
 
 #include <boost/filesystem.hpp>
+
 
 namespace snowboy_ros
 {
@@ -117,12 +120,39 @@ private:
   HotwordDetector detector_;
 
   //!
+  //! \brief no_of_channels_ Number of audio channels in incoming signal
+  //!
+  int no_of_channels_;
+
+  //!
+  //! \brief bit_depth_ The bit depth of the incoming audio samples
+  //!
+  int bit_depth_;
+
+  //!
+  //! \brief sample_rate_ The sample rate of the incoming audio signal
+  //!
+  int sample_rate_;
+
+  //!
+  //! \brief resamper_ Resampler using libsamplerate
+  //!
+  Resampler resampler_;
+
+  //!
   //! \brief reconfigureCallback Reconfigure update for sensitiviy and audio level
   //! \param cfg The updated config
   //!
   void reconfigureCallback(SnowboyReconfigureConfig cfg, uint32_t /*level*/)
   {
     detector_.configure(cfg.sensitivity, cfg.audio_gain);
+
+    int no_of_channels = cfg.channels;
+    int bit_depth = cfg.bit_depth;
+    int sample_rate = cfg.sample_rate;
+
+    resampler_.configure(no_of_channels, bit_depth, sample_rate);
+
     ROS_INFO("SnowboyROS (Re)Configured");
   }
 
@@ -134,6 +164,7 @@ private:
   {
     if (msg->data.size() != 0)
     {
+
       /* Sound signal is encoded with bit depth 16 and cut up in a byte array. RunDetection wants it as an array of
        * int16_t. Therefore, we bit shift the second (MSB) byte of a sample by 8 and cast it to an int16_t and add the
        * first (LSB) byte of the sample to the result (also after typecast).
@@ -151,6 +182,8 @@ private:
       }
 
       int result = detector_.runDetection( &sample_array[0], msg->data.size()/2);
+
+      std::vector<int16_t> data;
       if (result > 0)
       {
         ROS_DEBUG("Hotword detected!");
