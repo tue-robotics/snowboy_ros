@@ -7,6 +7,8 @@
         <param name="channels" value="1" />
         <param name="depth" value="16" />
         <param name="sample_rate" value="16000" />
+
+        <remap from="audio" to="microphone" />
     </node>
 
     <node pkg="snowboy_ros" type="hotword_detector_node" name="snowboy" required="true">
