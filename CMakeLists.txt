@@ -88,3 +88,21 @@ target_link_libraries(hotword_detector_node
 )
 add_dependencies(hotword_detector_node ${PROJECT_NAME}_gencfg)
 
+install(
+  TARGETS
+  hotword_detector
+  hotword_detector_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(
+  DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+
+install(
+  DIRECTORY resources/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/resources
+)
