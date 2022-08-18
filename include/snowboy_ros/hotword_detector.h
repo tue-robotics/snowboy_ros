@@ -19,8 +19,8 @@ public:
 
   //!
   //! \brief initialize Initializes the Snowbody
-  //! \param [in]  resource_filename   Filename of resource file.
-  //! \param [in]  model_str           A string of multiple hotword models,
+  //! \param [in]  resource_filename   Filename of resource file
+  //! \param [in]  model_filename      A string of multiple hotword models
   //!
   void initialize(const char* resource_filename, const char* model_filename);
 
